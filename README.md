@@ -1,5 +1,3 @@
-# Solvers for games
+# My stuff
 
-(mainly New York Times word games)
-
-Some solvers I coded up to beat my friends at those games
+i put stuff that i happen to code for some reason here
