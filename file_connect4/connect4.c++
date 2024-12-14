@@ -1,11 +1,11 @@
 #include <bits/stdc++.h>
-// #pragma GCC optimize("O3")
-// #pragma GCC optimize("Ofast,unroll-loops")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("Ofast,unroll-loops")
 #define ll long long
 using namespace std;
 using ms = chrono::duration<double, milli>;
 
-const int height = 6, width = 7, win = 1e9, large = 1e6;
+const int height = 6, width = 7, win = 1e9;
 const pair<int, int> directions[7] = {{0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 const int valueTable[2][4] = {{0, 1, 6, 100}, {0, 6, 100, 10000}};
 const int bitwiseDirs[4] = {1, 7, 8, 6};
