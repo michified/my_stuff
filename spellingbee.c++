@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-const int wordsCount = 44392;
+const int wordsCount = 97565;
 
 int main() {
     ifstream file("words.txt");
@@ -15,23 +15,24 @@ int main() {
     string whites;
     cout << "Enter the white letters in one word in lowercase (e.g. abcdef):";
     cin >> whites;
-    vector<bool> whitesLookup(120);
+    vector<bool> whitesLookup(128);
     for (char c : whites) whitesLookup[c] = true;
 
     vector<string> valid;
     for (string& word : words) {
+        if (word.size() <= 3) continue;
         bool hasYellow = false, allWhite = true;
         for (char c : word) {
-            if (not whitesLookup[c]) {
+            if (c == yellow) hasYellow = true;
+            else if (not whitesLookup[c]) {
                 allWhite = false;
                 break;
             }
-            if (c == yellow) hasYellow = true;
         }
         if (hasYellow and allWhite) valid.push_back(word);
     }
 
-    cout << "Type any letter for a new word.";
+    cout << "Type any letter for a new word." << endl;
     reverse(valid.begin(), valid.end());
     while (not valid.empty()) {
         char inp;
