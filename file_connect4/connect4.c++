@@ -8,12 +8,16 @@ using ms = chrono::duration<double, milli>;
 const int height = 6, width = 7, win = 1e9;
 const pair<int, int> directions[7] = {{0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 const int valueTable[2][4] = {{0, 1, 6, 100}, {0, 6, 100, 10000}};
+const int bitwiseDirs[4] = {1, 7, 8, 6};
+const int order[7] = {3, 2, 4, 5, 1, 0, 6};
 
 class BoardState {
 private:
 	int player; // player is -1, machine is 1
 	int board[height][width];
 	int numPieces[width];
+	ll cmpBitBoard;
+	ll hmnBitBoard;
 
 	bool valid(int row, int col) {
 		return row >= 0 and row < height and col >= 0 and col < width;
@@ -59,7 +63,7 @@ private:
 			for (i = 0; i < height - 1; i++) {
 				cell1 = candidates[i][j];
 				cell2 = candidates[i + 1][j];
-				value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i);
+				value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i) * (height - i);
 			}
 		}
 
@@ -71,6 +75,8 @@ public:
 		this->player = player;
 		memset(board, 0, sizeof(board));
 		memset(numPieces, 0, sizeof(numPieces));
+		cmpBitBoard = 0;
+		hmnBitBoard = 0;
 	}
 
 	int getPlayer() {
@@ -87,12 +93,30 @@ public:
 
 	void add(int col) {
 		board[numPieces[col]][col] = player;
+		if (player == 1) cmpBitBoard ^= 1ll << (col * 7 + numPieces[col]);
+		else hmnBitBoard ^= 1ll << (col * 7 + numPieces[col]);
 		numPieces[col]++;
 	}
 
 	void remove(int col) {
 		numPieces[col]--;
+		if (player == 1) cmpBitBoard ^= 1ll << (col * 7 + numPieces[col]);
+		else hmnBitBoard ^= 1ll << (col * 7 + numPieces[col]);
 		board[numPieces[col]][col] = 0;
+	}
+
+	pair<ll, ll> getBitBoards() {
+		return {cmpBitBoard, hmnBitBoard};
+	}
+
+	int isWin() {
+		for (int direction : bitwiseDirs) {
+			if ((cmpBitBoard & (cmpBitBoard >> direction) & (cmpBitBoard >> (direction * 2)) & (cmpBitBoard >> (direction * 3))) != 0) return win;
+		}
+		for (int direction : bitwiseDirs) {
+			if ((hmnBitBoard & (hmnBitBoard >> direction) & (hmnBitBoard >> (direction * 2)) & (hmnBitBoard >> (direction * 3))) != 0) return -win;
+		}
+		return 0;
 	}
 
 	int staticEval() {
@@ -120,34 +144,28 @@ public:
 	}
 };
 
+map<pair<ll, ll>, pair<int, int>> trnspTable;
+
 // first elem is eval value, second is pos of best move
 pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
-	int eval = state.staticEval();
-	if (depth == 0 or abs(eval) == win) return {eval, 0};
+	if (trnspTable.find(state.getBitBoards()) != trnspTable.end()) return trnspTable[state.getBitBoards()];
+
+	int eval = state.isWin();
+	if (abs(eval) == win) return {eval, 0};
+	if (depth == 0) return {state.staticEval(), 0};
 
 	int valid = 0, best = -1, bestEval, col;
 	if (state.getPlayer() == 1) bestEval = -win;
 	else bestEval = win;
 
-	vector<pair<int, int>> order; // first is value after added, second is column number
-	for (int i = 0; i < width; i++) {
-		if (state.canAdd(i)) {
-			state.add(i);
-			order.push_back({-state.staticEval(), i});
-			state.remove(i);
-		}
-	}
-	sort(order.begin(), order.end());
-
-	for (auto& elem : order) {
-		col = elem.second;
+	for (int col : order) {
 		if (not state.canAdd(col)) continue;
 
 		state.add(col);
 		state.flipPlayer();
 		eval = minimax(state, alpha, beta, depth - 1).first;
-		state.remove(col);
 		state.flipPlayer();
+		state.remove(col);
 		
 		if (state.getPlayer() == 1) {
 			if (eval > bestEval) {
@@ -165,6 +183,8 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 
 		if (beta <= alpha) break;
 	}
+
+	trnspTable[state.getBitBoards()] = {bestEval, best};
 
 	return {bestEval, best};
 }
@@ -200,11 +220,13 @@ int main() {
 			int allowedDepth = 1;
 			ms elapsed, totalElapsed;
 
+			trnspTable.clear();
 			const auto before = chrono::system_clock::now();
 			col = minimax(state, -win, win, allowedDepth).second;
 			totalElapsed = chrono::system_clock::now() - before;
 
 			while (totalElapsed.count() < allowedMS and allowedDepth < movesLeft) {
+				trnspTable.clear();
 				allowedDepth++;
 				const auto before2 = chrono::system_clock::now();
 				col = minimax(state, -win, win, allowedDepth).second;
@@ -215,7 +237,7 @@ int main() {
 			state.add(col);
 		}
 
-		if (abs(state.staticEval()) == win) {
+		if (abs(state.isWin()) == win) {
 			state.printBoard();
 			if (state.getPlayer() == 1) cout << "Computer wins.";
 			else cout << "You win.";
