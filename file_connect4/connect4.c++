@@ -1,11 +1,11 @@
 #include <bits/stdc++.h>
-#pragma GCC optimize("O3")
-#pragma GCC optimize("Ofast,unroll-loops")
+// #pragma GCC optimize("O3")
+// #pragma GCC optimize("Ofast,unroll-loops")
 #define ll long long
 using namespace std;
 using ms = chrono::duration<double, milli>;
 
-const int height = 6, width = 7, win = 1e9;
+const int height = 6, width = 7, win = 1e9, large = 1e6;
 const pair<int, int> directions[7] = {{0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 const int valueTable[2][4] = {{0, 1, 6, 100}, {0, 6, 100, 10000}};
 const int bitwiseDirs[4] = {1, 7, 8, 6};
@@ -63,7 +63,7 @@ private:
 			for (i = 0; i < height - 1; i++) {
 				cell1 = candidates[i][j];
 				cell2 = candidates[i + 1][j];
-				value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i) * (height - i);
+				value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i);
 			}
 		}
 
@@ -144,22 +144,56 @@ public:
 	}
 };
 
-map<pair<ll, ll>, pair<int, int>> trnspTable;
+map<pair<ll, ll>, pair<pair<int, int>, int>> trnspTable, seenTTable;
 
-// first elem is eval value, second is pos of best move
+// first.first: evalVal, first.second: bestChoice, second: depth
 pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
-	if (trnspTable.find(state.getBitBoards()) != trnspTable.end()) return trnspTable[state.getBitBoards()];
+	if (trnspTable.find(state.getBitBoards()) != trnspTable.end()) return trnspTable[state.getBitBoards()].first;
 
 	int eval = state.isWin();
 	if (abs(eval) == win) return {eval, 0};
 	if (depth == 0) return {state.staticEval(), 0};
 
-	int valid = 0, best = -1, bestEval, col;
+	int valid = 0, best = -1, bestEval;
 	if (state.getPlayer() == 1) bestEval = -win;
 	else bestEval = win;
 
 	for (int col : order) {
-		if (not state.canAdd(col)) continue;
+		if (state.canAdd(col)) {
+			best = col;
+			break;
+		}
+	}
+
+	int toSearch = 3;
+	if (seenTTable.find(state.getBitBoards()) != seenTTable.end()) toSearch = seenTTable[state.getBitBoards()].first.second;
+
+	if (state.canAdd(toSearch)) {
+		state.add(toSearch);
+		state.flipPlayer();
+		eval = minimax(state, alpha, beta, depth - 1).first;
+		state.flipPlayer();
+		state.remove(toSearch);
+		
+		if (state.getPlayer() == 1) {
+			if (eval > bestEval) {
+				bestEval = eval;
+				best = toSearch;
+			}
+			alpha = max(alpha, eval);
+		} else {
+			if (eval < bestEval) {
+				bestEval = eval;
+				best = toSearch;
+			}
+			beta = min(beta, eval);
+		}
+
+		if (beta <= alpha) return {bestEval, best};
+	}
+
+	for (int col : order) {
+		if (not state.canAdd(col) or col == toSearch) continue;
 
 		state.add(col);
 		state.flipPlayer();
@@ -184,8 +218,7 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 		if (beta <= alpha) break;
 	}
 
-	trnspTable[state.getBitBoards()] = {bestEval, best};
-
+	trnspTable[state.getBitBoards()] = {{bestEval, best}, depth};
 	return {bestEval, best};
 }
 
@@ -220,12 +253,20 @@ int main() {
 			int allowedDepth = 1;
 			ms elapsed, totalElapsed;
 
+			for (auto& elem : trnspTable) {
+				if (seenTTable.find(elem.first) == seenTTable.end() or
+					seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
+			}
 			trnspTable.clear();
 			const auto before = chrono::system_clock::now();
 			col = minimax(state, -win, win, allowedDepth).second;
 			totalElapsed = chrono::system_clock::now() - before;
 
 			while (totalElapsed.count() < allowedMS and allowedDepth < movesLeft) {
+				for (auto& elem : trnspTable) {
+					if (seenTTable.find(elem.first) == seenTTable.end() or
+						seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
+				}
 				trnspTable.clear();
 				allowedDepth++;
 				const auto before2 = chrono::system_clock::now();
