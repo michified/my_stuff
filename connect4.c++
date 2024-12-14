@@ -125,7 +125,7 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 	int eval = state.staticEval();
 	if (depth == 0 or abs(eval) == win) return {eval, 0};
 
-	int valid = 0, best = -1, bestEval;
+	int valid = 0, best = -1, bestEval, col;
 	if (state.getPlayer() == 1) bestEval = -win;
 	else bestEval = win;
 
@@ -139,14 +139,8 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 	}
 	sort(order.begin(), order.end());
 
-	for (auto [_, col] : order) {
-		if (state.canAdd(col)) {
-			valid++;
-			if (best == -1) best = col;
-		}
-	}
-
-	for (auto [_, col] : order) {
+	for (auto& elem : order) {
+		col = elem.second;
 		if (not state.canAdd(col)) continue;
 
 		state.add(col);
