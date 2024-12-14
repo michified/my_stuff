@@ -53,7 +53,7 @@ private:
 				}
 			}
 		}
-
+		
 		int cell1, cell2;
 		for (j = 0; j < width; j++) {
 			for (i = 0; i < height - 1; i++) {
