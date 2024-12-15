@@ -1,6 +1,9 @@
 #include <bits/stdc++.h>
+
+// optimization flags for the compiler for higher efficiency (i am not convinced that they actually help though)
 #pragma GCC optimize("O3")
 #pragma GCC optimize("Ofast,unroll-loops")
+
 #define ll long long
 using namespace std;
 using ms = chrono::duration<double, milli>;
@@ -348,3 +351,12 @@ int main() {
 	cout << "Tie!";
 	return 0;
 }
+
+/*
+overall, with the addition of the aforementioned optimization techniques, the program can search up to depth 12
+in the first few moves of the game, which is a (W = 7)^(D = 5) = ~17,000x speedup compared to a naive method that can 
+only search up to a depth of 7 when both are halted after 3 seconds
+
+note: when the computer takes less than 3 seconds to make a move, it usually means that the computer has
+'solved' the position: it found a strategy to win no matter what the player plays
+*/
