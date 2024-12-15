@@ -112,7 +112,7 @@ int main() {
         swap(valid, tmp);
         tmp.clear();
         if (valid.size() == 1) {
-            cout << valid[0];
+            cout << valid[0] << endl;
             return 0;
         }
         guess = findBest(valid);
