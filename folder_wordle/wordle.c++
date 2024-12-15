@@ -63,6 +63,7 @@ int main() {
     while (inp != "ggggg") {
         cout << guess << endl;
         cin >> inp;
+        if (inp == "ggggg") return 0;
         bool good, seen;
         for (auto& word : valid) {
             good = true;
@@ -76,6 +77,7 @@ int main() {
                     }
                 }
             }
+
             for (i = 0; i < 5; i++) {
                 if (inp[i] == 'y') {
                     if (copy[i] == guess[i]) {
@@ -97,6 +99,7 @@ int main() {
                     }
                 }
             }
+
             for (i = 0; i < 5; i++) {
                 if (inp[i] == 'b') {
                     for (j = 0; j < 5; j++) {
@@ -109,13 +112,15 @@ int main() {
             }
             if (good) tmp.push_back(word);
         }
+
         swap(valid, tmp);
         tmp.clear();
         if (valid.size() == 1) {
             cout << valid[0] << endl;
             return 0;
         }
-        guess = findBest(valid);
+        if (valid.size() == 2) guess = valid[0];
+        else guess = findBest(valid);
     }
     return 0;
 }
