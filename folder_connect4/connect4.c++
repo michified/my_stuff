@@ -324,6 +324,7 @@ int main() {
 			a timer is also kept to prevent the search for taking too long; the timeout value can be modified
 			*/
 			while (totalElapsed.count() < allowedMS and allowedDepth < movesLeft) {
+				if (movesLeft < 16) trnspTable.clear();
 				for (auto& elem : trnspTable) {
 					if (seenTTable.find(elem.first) == seenTTable.end() or
 						seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
@@ -346,8 +347,6 @@ int main() {
 			else cout << "You win.";
 			return 0;
 		}
-
-		if (movesLeft < 20) seenTTable.clear();
 
 		state.flipPlayer();
 	}
