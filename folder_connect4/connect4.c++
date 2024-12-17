@@ -1,8 +1,8 @@
 #include <bits/stdc++.h>
 
 // optimization flags for the compiler for higher efficiency (i am not convinced that they actually help though)
-#pragma GCC optimize("O3")
-#pragma GCC optimize("Ofast,unroll-loops")
+// #pragma GCC optimize("O3")
+// #pragma GCC optimize("Ofast,unroll-loops")
 
 #define ll long long
 using namespace std;
@@ -240,7 +240,10 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 			beta = min(beta, eval);
 		}
 
-		if (beta <= alpha) return {bestEval, best};
+		if (beta <= alpha) {
+			trnspTable[state.getBitBoards()] = {{bestEval, best}, depth};
+			return {bestEval, best};
+		}
 	}
 
 	for (int col : order) {
@@ -310,7 +313,7 @@ int main() {
 			}
 			trnspTable.clear();
 			const auto before = chrono::system_clock::now();
-			col = minimax(state, -win, win, allowedDepth).second;
+			col = minimax(state, -win - 1, win + 1, allowedDepth).second;
 			totalElapsed = chrono::system_clock::now() - before;
 
 			/*
@@ -328,7 +331,7 @@ int main() {
 				trnspTable.clear();
 				allowedDepth++;
 				const auto before2 = chrono::system_clock::now();
-				col = minimax(state, -win, win, allowedDepth).second;
+				col = minimax(state, -win - 1, win + 1, allowedDepth).second;
 				totalElapsed = chrono::system_clock::now() - before;
 			}
 
@@ -343,6 +346,8 @@ int main() {
 			else cout << "You win.";
 			return 0;
 		}
+
+		if (movesLeft < 20) seenTTable.clear();
 
 		state.flipPlayer();
 	}
