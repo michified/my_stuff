@@ -1,20 +1,19 @@
 #include <bits/stdc++.h>
 
 // optimization flags for the compiler for higher efficiency (i am not convinced that they actually help though)
-// #pragma GCC optimize("O3")
-// #pragma GCC optimize("Ofast,unroll-loops")
+#pragma GCC optimize("O3")
+#pragma GCC optimize("Ofast,unroll-loops")
 
 #define ll long long
 using namespace std;
 using ms = chrono::duration<double, milli>;
 
 const int height = 6, width = 7;
-const pair<int, int> directions[7] = {{0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-const int valueTable[2][4] = {{0, 1, 6, 100}, {0, 6, 100, 10000}};
 const int bitwiseDirs[4] = {1, 7, 8, 6}; // bitwise shift constants for vertical, horizontal, and diagonal movement
 const int order[7] = {3, 2, 4, 5, 1, 0, 6}; // the order in which the bot checks columns
-const int cmpChain[5] = {0, 0, 100, 1000, 100001};
-const int hmnChain[5] = {0, 0, -101, -1001, -100000};
+const int cmpChain[10] = {0, 0, 0, 0, 100, 1000, 10000, 100000, 10000001, 10000001};
+const int hmnChain[10] = {0, 0, 0, 0, -101, -1010, -10001, -100010, -10000000, -10000000};
+int parity;
 
 class BoardState {
 private:
@@ -44,58 +43,56 @@ private:
 		return row >= 0 and row < height and col >= 0 and col < width;
 	}
 
-	// function that takes a player and calculates their score; higher means more advantageous for the player
-	// int score(int me) {
-	// 	int i, j, k, row, col, value = 0, mecnt, oppcnt, remaining;
-	// 	vector<pair<int, int>> emptyCurLine;
-	// 	int candidates[height][width];
-	// 	memset(candidates, 0, sizeof(candidates));
+	bool change(int val, int& cmpcnt, int& hmncnt, int& nthcnt, int by) { // true if nthcnt was changed
+		if (val == 1) {
+			cmpcnt += by;
+			return false;
+		}
+		if (val == -1) {
+			hmncnt += by;
+			return false;
+		}
+		nthcnt += by;
+		return true;
+	}
 
-	// 	// iterates through each direction that a line can be connected for each square in the grid
-	// 	for (i = 0; i < height; i++) {
-	// 		for (j = 0; j < width; j++) {
-	// 			for (auto& direction : directions) {
-	// 				// checks wheter the endpoint is inside the grid
-	// 				if (not valid(i + direction.first * 3, j + direction.second * 3)) continue;
+	// sliding window computations improve performance by x4
+	int evalLine(int srow, int scol, int drow, int dcol) {
+		int cmpcnt = 0, hmncnt = 0, nthcnt = 0, eval = 0, lrow, lcol, rrow, rcol, i, goodParityCnt = 0;
 
-	// 				row = i;
-	// 				col = j;
-	// 				mecnt = 0;
-	// 				oppcnt = 0;
-	// 				emptyCurLine.clear();
+		if (not valid(srow + drow * 3, scol + dcol * 3)) return 0;
 
-	// 				// counds the number of pieces of each side in the line
-	// 				for (k = 0; k < 4; k++) {
-	// 					if (board[row][col] == me) mecnt++;
-	// 					else if (board[row][col] == -me) oppcnt++;
-	// 					else emptyCurLine.push_back({row, col});
-	// 					row += direction.first;
-	// 					col += direction.second;
-	// 				}
+		lrow = rrow = srow;
+		lcol = rcol = scol;
+		for (i = 0; i <= 3; i++) {
+			if (change(board[rrow][rcol], cmpcnt, hmncnt, nthcnt, 1)) {
+				if (rcol % 2 == parity) goodParityCnt++;
+			}
+			rrow += drow;
+			rcol += dcol;
+		}
 
-	// 				// decides whether someone won or the pieces contribute to the current player's score
-	// 				if (mecnt == 4) return win;
-	// 				if (oppcnt == 4) return -win;
-	// 				if (oppcnt == 0 and mecnt != 0) {
-	// 					for (auto& cell : emptyCurLine) candidates[cell.first][cell.second] = max(candidates[cell.first][cell.second], mecnt);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
+		if (hmncnt == 0 and nthcnt == 4 - cmpcnt) eval += cmpChain[cmpcnt * 2 + (goodParityCnt == nthcnt)];
+		else if (cmpcnt == 0 and nthcnt == 4 - hmncnt) eval += hmnChain[hmncnt * 2 + (goodParityCnt == 0)];
 		
-	// 	// a procedure that calculates how 'valuable' each piece is and adds it to the total score
-	// 	int cell1, cell2;
-	// 	for (j = 0; j < width; j++) {
-	// 		for (i = 0; i < height - 1; i++) {
-	// 			cell1 = candidates[i][j];
-	// 			cell2 = candidates[i + 1][j];
-	// 			value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i);
-	// 		}
-	// 		value += valueTable[0][candidates[height - 1][j]];
-	// 	}
+		while (valid(rrow, rcol)) {
+			if (change(board[lrow][lcol], cmpcnt, hmncnt, nthcnt, -1)) {
+				if (rcol % 2 == parity) goodParityCnt--;
+			}
+			lrow += drow;
+			lcol += dcol;
+			if (change(board[rrow][rcol], cmpcnt, hmncnt, nthcnt, 1)) {
+				if (rcol % 2 == parity) goodParityCnt++;
+			}
+			rrow += drow;
+			rcol += dcol;
 
-	// 	return value;
-	// }
+			if (hmncnt == 0 and nthcnt == 4 - cmpcnt) eval += cmpChain[cmpcnt * 2 + (goodParityCnt == nthcnt)];
+			else if (cmpcnt == 0 and nthcnt == 4 - hmncnt) eval += hmnChain[hmncnt * 2 + (goodParityCnt == 0)];
+		}
+
+		return eval;
+	}
 
 public:
 	// constructor
@@ -150,47 +147,21 @@ public:
 		return 0;
 	}
 
-	// evaluates the overall score from the perspective of the computer
-	// int staticEval() {
-	// 	int res = score(1);
-	// 	if (abs(res) == win) return res;
-	// 	flipPlayer();
-	// 	res -= score(-1);
-	// 	flipPlayer();
-	// 	return res;
-	// }
-
+	// function that takes a player and calculates their score; higher means more advantageous for the player
 	int staticEval() {
-		int i, j, k, row, col, cmpcnt, hmncnt, nthcnt, eval = 0; // count of computer's pieces, human's pieces, and nothing
+		int i, j, eval = 0;
+		
+		for (i = 0; i < height; i++) eval += evalLine(i, 0, 0, 1); // rows
+		
+		for (j = 0; j < width; j++) eval += evalLine(numPieces[j] == height ? 0 : numPieces[j], j, -1, 0); // columns
 
-		// iterates through each direction that a line can be connected for each square in the grid
-		for (i = 0; i < height; i++) {
-			for (j = 0; j < width; j++) {
-				for (auto& direction : directions) {
-					// checks wheter the endpoint is inside the grid
-					if (not valid(i + direction.first * 3, j + direction.second * 3)) continue;
+		// '/' diagonals
+		for (i = 1; i <= 2; i++) eval += evalLine(i, 0, 1, 1);
+		for (j = 0; j <= 3; j++) eval += evalLine(0, j, 1, 1);
 
-					row = i;
-					col = j;
-					cmpcnt = 0;
-					hmncnt = 0;
-					nthcnt = 0;
-
-					// counds the number of pieces of each side in the line
-					for (k = 0; k < 4; k++) {
-						if (board[row][col] == 1) cmpcnt++;
-						else if (board[row][col] == -1) hmncnt++;
-						else nthcnt++;
-						row += direction.first;
-						col += direction.second;
-					}
-
-					// adds some score based on the number of pieces
-					if (hmncnt == 0 and nthcnt == 4 - cmpcnt) eval += cmpChain[cmpcnt];
-					else if (cmpcnt == 0 and nthcnt == 4 - hmncnt) eval += hmnChain[hmncnt];
-				}
-			}
-		}
+		// '\' diagonals
+		for (j = 3; j < width; j++) eval += evalLine(0, j, 1, -1);
+		for (i = 1; i <= 2; i++) eval += evalLine(i, width - 1, 1, -1);
 
 		return eval;
 	}
@@ -232,8 +203,8 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 
 	// (base case) checks whether the depth limit has been reached or someone has won already
 	int eval = state.isWin();
-	if (eval == 1) return {cmpChain[4], 0};
-	else if (eval == -1) return {hmnChain[4], 0};
+	if (eval == 1) return {cmpChain[9], 0};
+	else if (eval == -1) return {hmnChain[9], 0};
 	if (depth == 0) return {state.staticEval(), 0};
 
 	int best = -1, bestEval;
@@ -315,15 +286,20 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 	return {bestEval, best};
 }
 
-const int allowedMS = 3000;
+const int allowedMS = 6000;
 
 int main() {
 	int starting, col, movesLeft = width * height;
 	char inp;
 	cout << "Do you want to start first? Type 'y' if you do, otherwise type 'n'." << endl;
 	cin >> inp;
-	if (inp == 'y') starting = -1;
-	else starting = 1;
+	if (inp == 'y') {
+		starting = -1;
+		parity = 1;
+	} else {
+		starting = 1;
+		parity = 0;
+	}
 
 	BoardState state(starting);
 
@@ -342,40 +318,46 @@ int main() {
 			cout << "Piece placed in column " << col + 1 << "." << endl << endl;
 		} else {
 			cout << "Computer is thinking..." << endl;
-			int allowedDepth = 1;
-			ms elapsed, totalElapsed;
-
-			for (auto& elem : trnspTable) {
-				if (seenTTable.find(elem.first) == seenTTable.end() or
-					seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
-			}
-			trnspTable.clear();
 			const auto before = chrono::system_clock::now();
-			col = minimax(state, INT_MIN, INT_MAX, allowedDepth).second;
-			totalElapsed = chrono::system_clock::now() - before;
-
-			/*
-			this is the concept of iterative deepening depth-first search (IDDFS)
-			allows DFS to go deeper and deeper if time allows
-			which may actually be faster than just directly searching at the most optimal depth (which is hard to predict too)
-			when combined with transposition tables
-			a timer is also kept to prevent the search for taking too long; the timeout value can be modified
-			*/
-			pair<int, int> tmp;
-			while (totalElapsed.count() < allowedMS and allowedDepth < movesLeft) {
+			ms totalElapsed;
+			int allowedDepth = 1;
+			if (movesLeft == 1) {
+				for (col = 0; col < width; col++) {
+					if (state.canAdd(col)) break;
+				}
+				totalElapsed = chrono::system_clock::now() - before;
+			} else {
 				for (auto& elem : trnspTable) {
 					if (seenTTable.find(elem.first) == seenTTable.end() or
 						seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
 				}
 				trnspTable.clear();
-				allowedDepth++;
-				const auto before2 = chrono::system_clock::now();
-				tmp = minimax(state, INT_MIN, INT_MAX, allowedDepth);
+				col = minimax(state, INT_MIN, INT_MAX, allowedDepth).second;
 				totalElapsed = chrono::system_clock::now() - before;
-			}
 
-			cout << tmp.first << endl;
-			col = tmp.second;
+				/*
+				this is the concept of iterative deepening depth-first search (IDDFS)
+				allows DFS to go deeper and deeper if time allows
+				which may actually be faster than just directly searching at the most optimal depth (which is hard to predict too)
+				when combined with transposition tables
+				a timer is also kept to prevent the search for taking too long; the timeout value can be modified
+				*/
+				pair<int, int> tmp;
+				while (totalElapsed.count() < allowedMS and allowedDepth < movesLeft) {
+					for (auto& elem : trnspTable) {
+						if (seenTTable.find(elem.first) == seenTTable.end() or
+							seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
+					}
+					trnspTable.clear();
+					allowedDepth++;
+					const auto before2 = chrono::system_clock::now();
+					tmp = minimax(state, INT_MIN, INT_MAX, allowedDepth);
+					totalElapsed = chrono::system_clock::now() - before;
+				}
+
+				cout << tmp.first << endl;
+				col = tmp.second;
+			}
 			cout << "Piece placed in column " << col + 1 << ". (Depth: " << allowedDepth << ") (" << totalElapsed.count() << "ms)"<< endl << endl;
 		}
 
@@ -397,9 +379,9 @@ int main() {
 }
 
 /*
-overall, with the addition of the aforementioned optimization techniques, the program can search up to depth 12
-in the first few moves of the game, which is a (W = 7)^(D = 5) = ~17,000x speedup compared to a naive method that can 
-only search up to a depth of 7 when both are halted after 3 seconds
+overall, with the addition of the aforementioned optimization techniques, the program can search up to depth 14
+in the first few moves of the game, which is a (W = 7)^(D = 6) = ~100,000x speedup compared to a naive method that can 
+only search up to a depth of 8 when both are halted after 3 seconds
 
 note: when the computer takes less than 3 seconds to make a move, it usually means that the computer has
 'solved' the position: it found a strategy to win no matter what the player plays
