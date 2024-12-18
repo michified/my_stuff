@@ -8,11 +8,13 @@
 using namespace std;
 using ms = chrono::duration<double, milli>;
 
-const int height = 6, width = 7, win = 1e9;
+const int height = 6, width = 7;
 const pair<int, int> directions[7] = {{0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 const int valueTable[2][4] = {{0, 1, 6, 100}, {0, 6, 100, 10000}};
 const int bitwiseDirs[4] = {1, 7, 8, 6}; // bitwise shift constants for vertical, horizontal, and diagonal movement
 const int order[7] = {3, 2, 4, 5, 1, 0, 6}; // the order in which the bot checks columns
+const int cmpChain[5] = {0, 0, 100, 1000, 100001};
+const int hmnChain[5] = {0, 0, -101, -1001, -100000};
 
 class BoardState {
 private:
@@ -43,57 +45,57 @@ private:
 	}
 
 	// function that takes a player and calculates their score; higher means more advantageous for the player
-	int score(int me) {
-		int i, j, k, row, col, value = 0, mecnt, oppcnt, remaining;
-		vector<pair<int, int>> emptyCurLine;
-		int candidates[height][width];
-		memset(candidates, 0, sizeof(candidates));
+	// int score(int me) {
+	// 	int i, j, k, row, col, value = 0, mecnt, oppcnt, remaining;
+	// 	vector<pair<int, int>> emptyCurLine;
+	// 	int candidates[height][width];
+	// 	memset(candidates, 0, sizeof(candidates));
 
-		// iterates through each direction that a line can be connected for each square in the grid
-		for (i = 0; i < height; i++) {
-			for (j = 0; j < width; j++) {
-				for (auto& direction : directions) {
-					// checks wheter the endpoint is inside the grid
-					if (not valid(i + direction.first * 3, j + direction.second * 3)) continue;
+	// 	// iterates through each direction that a line can be connected for each square in the grid
+	// 	for (i = 0; i < height; i++) {
+	// 		for (j = 0; j < width; j++) {
+	// 			for (auto& direction : directions) {
+	// 				// checks wheter the endpoint is inside the grid
+	// 				if (not valid(i + direction.first * 3, j + direction.second * 3)) continue;
 
-					row = i;
-					col = j;
-					mecnt = 0;
-					oppcnt = 0;
-					emptyCurLine.clear();
+	// 				row = i;
+	// 				col = j;
+	// 				mecnt = 0;
+	// 				oppcnt = 0;
+	// 				emptyCurLine.clear();
 
-					// counds the number of pieces of each side in the line
-					for (k = 0; k < 4; k++) {
-						if (board[row][col] == me) mecnt++;
-						else if (board[row][col] == -me) oppcnt++;
-						else emptyCurLine.push_back({row, col});
-						row += direction.first;
-						col += direction.second;
-					}
+	// 				// counds the number of pieces of each side in the line
+	// 				for (k = 0; k < 4; k++) {
+	// 					if (board[row][col] == me) mecnt++;
+	// 					else if (board[row][col] == -me) oppcnt++;
+	// 					else emptyCurLine.push_back({row, col});
+	// 					row += direction.first;
+	// 					col += direction.second;
+	// 				}
 
-					// decides whether someone won or the pieces contribute to the current player's score
-					if (mecnt == 4) return win;
-					if (oppcnt == 4) return -win;
-					if (oppcnt == 0 and mecnt != 0) {
-						for (auto& cell : emptyCurLine) candidates[cell.first][cell.second] = max(candidates[cell.first][cell.second], mecnt);
-					}
-				}
-			}
-		}
+	// 				// decides whether someone won or the pieces contribute to the current player's score
+	// 				if (mecnt == 4) return win;
+	// 				if (oppcnt == 4) return -win;
+	// 				if (oppcnt == 0 and mecnt != 0) {
+	// 					for (auto& cell : emptyCurLine) candidates[cell.first][cell.second] = max(candidates[cell.first][cell.second], mecnt);
+	// 				}
+	// 			}
+	// 		}
+	// 	}
 		
-		// a procedure that calculates how 'valuable' each piece is and adds it to the total score
-		int cell1, cell2;
-		for (j = 0; j < width; j++) {
-			for (i = 0; i < height - 1; i++) {
-				cell1 = candidates[i][j];
-				cell2 = candidates[i + 1][j];
-				value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i);
-			}
-			value += valueTable[0][candidates[height - 1][j]];
-		}
+	// 	// a procedure that calculates how 'valuable' each piece is and adds it to the total score
+	// 	int cell1, cell2;
+	// 	for (j = 0; j < width; j++) {
+	// 		for (i = 0; i < height - 1; i++) {
+	// 			cell1 = candidates[i][j];
+	// 			cell2 = candidates[i + 1][j];
+	// 			value += (valueTable[0][cell1] + valueTable[0][cell2] + valueTable[1][min(cell1, cell2)]) * (height - i);
+	// 		}
+	// 		value += valueTable[0][candidates[height - 1][j]];
+	// 	}
 
-		return value;
-	}
+	// 	return value;
+	// }
 
 public:
 	// constructor
@@ -140,22 +142,57 @@ public:
 	// results in an ~100x speedup during checking for wins
 	int isWin() {
 		for (int direction : bitwiseDirs) {
-			if ((cmpBitBoard & (cmpBitBoard >> direction) & (cmpBitBoard >> (direction * 2)) & (cmpBitBoard >> (direction * 3))) != 0) return win;
+			if ((cmpBitBoard & (cmpBitBoard >> direction) & (cmpBitBoard >> (direction * 2)) & (cmpBitBoard >> (direction * 3))) != 0) return 1;
 		}
 		for (int direction : bitwiseDirs) {
-			if ((hmnBitBoard & (hmnBitBoard >> direction) & (hmnBitBoard >> (direction * 2)) & (hmnBitBoard >> (direction * 3))) != 0) return -win;
+			if ((hmnBitBoard & (hmnBitBoard >> direction) & (hmnBitBoard >> (direction * 2)) & (hmnBitBoard >> (direction * 3))) != 0) return -1;
 		}
 		return 0;
 	}
 
 	// evaluates the overall score from the perspective of the computer
+	// int staticEval() {
+	// 	int res = score(1);
+	// 	if (abs(res) == win) return res;
+	// 	flipPlayer();
+	// 	res -= score(-1);
+	// 	flipPlayer();
+	// 	return res;
+	// }
+
 	int staticEval() {
-		int res = score(1);
-		if (abs(res) == win) return res;
-		flipPlayer();
-		res -= score(-1);
-		flipPlayer();
-		return res;
+		int i, j, k, row, col, cmpcnt, hmncnt, nthcnt, eval = 0; // count of computer's pieces, human's pieces, and nothing
+
+		// iterates through each direction that a line can be connected for each square in the grid
+		for (i = 0; i < height; i++) {
+			for (j = 0; j < width; j++) {
+				for (auto& direction : directions) {
+					// checks wheter the endpoint is inside the grid
+					if (not valid(i + direction.first * 3, j + direction.second * 3)) continue;
+
+					row = i;
+					col = j;
+					cmpcnt = 0;
+					hmncnt = 0;
+					nthcnt = 0;
+
+					// counds the number of pieces of each side in the line
+					for (k = 0; k < 4; k++) {
+						if (board[row][col] == 1) cmpcnt++;
+						else if (board[row][col] == -1) hmncnt++;
+						else nthcnt++;
+						row += direction.first;
+						col += direction.second;
+					}
+
+					// adds some score based on the number of pieces
+					if (hmncnt == 0 and nthcnt == 4 - cmpcnt) eval += cmpChain[cmpcnt];
+					else if (cmpcnt == 0 and nthcnt == 4 - hmncnt) eval += hmnChain[hmncnt];
+				}
+			}
+		}
+
+		return eval;
 	}
 
 	void printBoard() {
@@ -195,12 +232,13 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 
 	// (base case) checks whether the depth limit has been reached or someone has won already
 	int eval = state.isWin();
-	if (abs(eval) == win) return {eval, 0};
+	if (eval == 1) return {cmpChain[4], 0};
+	else if (eval == -1) return {hmnChain[4], 0};
 	if (depth == 0) return {state.staticEval(), 0};
 
-	int valid = 0, best = -1, bestEval;
-	if (state.getPlayer() == 1) bestEval = -win;
-	else bestEval = win;
+	int best = -1, bestEval;
+	if (state.getPlayer() == 1) bestEval = INT_MIN;
+	else bestEval = INT_MAX;
 
 	// best is set to the closest non-full row to the center
 	for (int col : order) {
@@ -313,7 +351,7 @@ int main() {
 			}
 			trnspTable.clear();
 			const auto before = chrono::system_clock::now();
-			col = minimax(state, -win - 1, win + 1, allowedDepth).second;
+			col = minimax(state, INT_MIN, INT_MAX, allowedDepth).second;
 			totalElapsed = chrono::system_clock::now() - before;
 
 			/*
@@ -323,8 +361,8 @@ int main() {
 			when combined with transposition tables
 			a timer is also kept to prevent the search for taking too long; the timeout value can be modified
 			*/
+			pair<int, int> tmp;
 			while (totalElapsed.count() < allowedMS and allowedDepth < movesLeft) {
-				if (movesLeft < 16) trnspTable.clear();
 				for (auto& elem : trnspTable) {
 					if (seenTTable.find(elem.first) == seenTTable.end() or
 						seenTTable[elem.first].second < elem.second.second) seenTTable[elem.first] = elem.second;
@@ -332,16 +370,18 @@ int main() {
 				trnspTable.clear();
 				allowedDepth++;
 				const auto before2 = chrono::system_clock::now();
-				col = minimax(state, -win - 1, win + 1, allowedDepth).second;
+				tmp = minimax(state, INT_MIN, INT_MAX, allowedDepth);
 				totalElapsed = chrono::system_clock::now() - before;
 			}
 
+			cout << tmp.first << endl;
+			col = tmp.second;
 			cout << "Piece placed in column " << col + 1 << ". (Depth: " << allowedDepth << ") (" << totalElapsed.count() << "ms)"<< endl << endl;
 		}
 
 		state.addToCol(col);
 
-		if (abs(state.isWin()) == win) {
+		if (abs(state.isWin()) == 1) {
 			state.printBoard();
 			if (state.getPlayer() == 1) cout << "Computer wins.";
 			else cout << "You win.";
