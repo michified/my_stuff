@@ -351,12 +351,9 @@ int main() {
 					trnspTable.clear();
 					allowedDepth++;
 					const auto before2 = chrono::system_clock::now();
-					tmp = minimax(state, INT_MIN, INT_MAX, allowedDepth);
+					col = minimax(state, INT_MIN, INT_MAX, allowedDepth).second;
 					totalElapsed = chrono::system_clock::now() - before;
 				}
-
-				cout << tmp.first << endl;
-				col = tmp.second;
 			}
 			cout << "Piece placed in column " << col + 1 << ". (Depth: " << allowedDepth << ") (" << totalElapsed.count() << "ms)"<< endl << endl;
 		}
