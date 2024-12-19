@@ -5,12 +5,11 @@ using namespace std;
 const int wordCount = 2316, allowedWords = 10656;
 
 vector<string> words(wordCount);
-map<string, ll> identifiers;
+map<string, int> identifiers;
 
 int score(vector<string>& valid, string& target) {
     identifiers.clear();
     int i, j, ret = 0;
-    ll tot = 0;
     string colors;
     for (auto& word : valid) {
         colors = "bbbbb";
@@ -26,8 +25,8 @@ int score(vector<string>& valid, string& target) {
         }
         identifiers[colors]++;
     }
-    for (auto& elem : identifiers) tot += elem.second * elem.second * elem.second;
-    return tot / (ll) identifiers.size();
+    for (auto& elem : identifiers) ret = max(ret, elem.second);
+    return ret;
 }
 
 string findBest(vector<string>& valid) {
@@ -50,7 +49,7 @@ int main() {
     for (i = 0; i < wordCount; i++) file >> words[i];
     file.close();
 
-    string guess = "raise", inp, copy;
+    string guess = "slate", inp, copy;
     vector<string> valid = words, tmp, valid2, tmp2;
 
     ifstream file2("allowedGuesses.txt");
