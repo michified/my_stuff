@@ -9,7 +9,8 @@ map<string, int> identifiers;
 
 int score(vector<string>& valid, string& target) {
     identifiers.clear();
-    int i, j, ret = 0;
+    int i, j;
+    ll ret = 0;
     string colors;
     for (auto& word : valid) {
         colors = "bbbbb";
@@ -25,7 +26,7 @@ int score(vector<string>& valid, string& target) {
         }
         identifiers[colors]++;
     }
-    for (auto& elem : identifiers) ret = max(ret, elem.second);
+    for (auto& elem : identifiers) ret += (ll) elem.second * elem.second;
     return ret;
 }
 
