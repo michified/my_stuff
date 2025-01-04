@@ -49,7 +49,7 @@ int main() {
     for (i = 0; i < wordCount; i++) file >> words[i];
     file.close();
 
-    string guess = "slate", inp, copy;
+    string guess = "crane", inp, copy;
     vector<string> valid = words, tmp, valid2, tmp2;
 
     ifstream file2("allowedGuesses.txt");
