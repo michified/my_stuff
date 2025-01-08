@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
-#pragma GCC optimize("O3")
-#pragma GCC optimize("Ofast,unroll-loops")
+// #pragma GCC optimize("O3")
+// #pragma GCC optimize("Ofast,unroll-loops")
 #define ll long long
 using namespace std;
 using ms = chrono::duration<double, milli>;
@@ -12,6 +12,7 @@ class BoardState {
 public:
 	int player; // player is -1, machine is 1
 	int numPieces[width];
+	int placed;
 	ll cmpBitBoard;
 	ll hmnBitBoard;
 	double wins;
@@ -25,10 +26,12 @@ public:
 		hmnBitBoard = 0;
 		wins = 0;
 		total = 0;
+		placed = 0;
 	}
 
 	BoardState(BoardState* toClone, int move) { // creates instance of next move
 		for (int i = 0; i < width; i++) numPieces[i] = toClone->numPieces[i];
+		placed = toClone->placed;
 		cmpBitBoard = toClone->cmpBitBoard;
 		hmnBitBoard = toClone->hmnBitBoard;
 		player = -toClone->player;
@@ -44,6 +47,7 @@ public:
 		hmnBitBoard = toClone->hmnBitBoard;
 		wins = 0;
 		total = 0;
+		placed = toClone->placed;
 	}	
 
 	bool canAdd(int col) {
@@ -54,6 +58,7 @@ public:
 		if (player == 1) cmpBitBoard ^= 1ll << (col * 7 + numPieces[col]);
 		else hmnBitBoard ^= 1ll << (col * 7 + numPieces[col]);
 		numPieces[col]++;
+		placed++;
 	}
 
 	int isWin() {
@@ -67,14 +72,14 @@ public:
 	}
 };
 
-double c = 1.75;
+double c = sqrt(2);
 
 double uct(BoardState* board, int curRan) {
-	return board->wins / board->total + c * sqrt(log(curRan) / board->total);
+	return board->wins / (board->total == 0 ? (double) 0.00001 : board->total) + c * sqrt(log(max(curRan, 3)) / (board->total == 0 ? (double) 0.00001 : board->total));
 }
 
 void traverse(vector<BoardState*>& path) {
-	if (not path.back()->children.empty()) {
+	while (not path.back()->children.empty()) {
 		double bestUCT = -1, res;
 		BoardState* best;
 		for (auto child : path.back()->children) {
@@ -85,7 +90,6 @@ void traverse(vector<BoardState*>& path) {
 			}
 		}
 		path.push_back(best);
-		traverse(path);
 	}
 }
 
@@ -107,19 +111,25 @@ void monteCarlo(BoardState* board) {
 	vector<BoardState*> path = {board};
 	traverse(path);
 	int verdict;
-	for (int i = 0; i < width; i++) {
-		if (not path.back()->canAdd(i)) continue;
-		path.back()->children.push_back(new BoardState(path.back(), i));
-		auto cur = path.back()->children.back();
-		verdict = rollout(cur);
-		for (auto node : path) {
-			node->total++;
-			if (node->player == verdict) node->wins++;
-			else if (verdict == 0) node->wins += 0.5;
+	if (path.back()->placed == width * height) {
+		verdict = board->isWin();
+	} else if (path.back()->total == 0) {
+		verdict = rollout(path.back());
+	} else {
+		for (int i = 0; i < width; i++) {
+			if (not path.back()->canAdd(i)) continue;
+			path.back()->children.push_back(new BoardState(path.back(), i));
 		}
+		auto cur = path.back()->children[0];
+		verdict = rollout(cur);
 		cur->total++;
 		if (cur->player == verdict) cur->wins++;
 		else if (verdict == 0) cur->wins += 0.5;
+	}
+	for (auto node : path) {
+		node->total++;
+		if (node->player == verdict) node->wins++;
+		else if (verdict == 0) node->wins += 0.5;
 	}
 }
 
@@ -165,6 +175,9 @@ int main() {
 			const auto before = chrono::system_clock::now();
 			ms totalElapsed = chrono::system_clock::now() - before;
 			dummy.children.push_back(new BoardState(state));
+			for (int i = 0; i < width; i++) {
+				if (dummy.children[0]->canAdd(i)) dummy.children[0]->children.push_back(new BoardState(dummy.children[0], i));
+			}
 			while (totalElapsed.count() < allowedMS) {
 				monteCarlo(dummy.children[0]);
 				totalElapsed = chrono::system_clock::now() - before;
