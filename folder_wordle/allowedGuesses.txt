@@ -494,7 +494,6 @@ ataxy
 atigi
 atilt
 atimy
-atlas
 atman
 atmas
 atmos

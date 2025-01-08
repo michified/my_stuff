@@ -286,7 +286,7 @@ pair<int, int> minimax(BoardState& state, int alpha, int beta, int depth) {
 	return {bestEval, best};
 }
 
-const int allowedMS = 6000;
+const int allowedMS = 3000;
 
 int main() {
 	int starting, col, movesLeft = width * height;
