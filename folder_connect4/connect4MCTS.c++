@@ -75,7 +75,7 @@ public:
 	}
 };
 
-double c = 1.7;
+double c = 2;
 
 double uct(BoardState* board, int curRan) {
 	return board->wins / board->total + c * sqrt(log(curRan + 1) / board->total);
@@ -141,7 +141,7 @@ void monteCarlo(BoardState* board) {
 	}
 }
 
-const int allowedMS = 2000;
+const int allowedMS = 5000;
 
 void printBoard(BoardState board) {
 	cout << "1 2 3 4 5 6 7" << endl;
