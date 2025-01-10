@@ -75,14 +75,14 @@ public:
 	}
 };
 
-double c = sqrt(2);
+double c = 1.7;
 
 double uct(BoardState* board, int curRan) {
 	return board->wins / board->total + c * sqrt(log(curRan + 1) / board->total);
 }
 
 void traverse(vector<BoardState*>& path) {
-	while (not path.back()->children.empty() and path.back()->ptr == width) {
+	while (not path.back()->children.empty() and path.back()->ptr == width and not path.back()->isWin()) {
 		double bestUCT = -1, res;
 		BoardState* best;
 		for (auto child : path.back()->children) {
@@ -98,8 +98,7 @@ void traverse(vector<BoardState*>& path) {
 
 int rollout(BoardState* board) {
 	BoardState copy(board);
-	int move, played = 0;
-	for (int i = 0; i < width; i++) played += copy.numPieces[i];
+	int move, played = copy.placed;
 	while (not copy.isWin() and played < width * height) {
 		move = rand() % width;
 		while (not copy.canAdd(move)) move = rand() % width;
@@ -114,7 +113,7 @@ void monteCarlo(BoardState* board) {
 	vector<BoardState*> path = {board};
 	traverse(path);
 	int verdict;
-	if (path.back()->placed == width * height) {
+	if (path.back()->placed == width * height or board->isWin()) {
 		verdict = board->isWin();
 	} else if (path.back()->total == 0) {
 		verdict = rollout(path.back());
@@ -128,7 +127,8 @@ void monteCarlo(BoardState* board) {
 			path.back()->ptr++;
 		}
 		auto cur = path.back()->children.back();
-		verdict = rollout(cur);
+		if (not cur->isWin()) verdict = rollout(cur);
+		else verdict = cur->isWin();
 		cur->total++;
 		if (cur->player == verdict) cur->wins++;
 		else if (verdict == 0) cur->wins += 0.5;
