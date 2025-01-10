@@ -113,8 +113,9 @@ void monteCarlo(BoardState* board) {
 	vector<BoardState*> path = {board};
 	traverse(path);
 	int verdict;
-	if (path.back()->placed == width * height or board->isWin()) {
-		verdict = board->isWin();
+	if (path.back()->placed == width * height or path.back()->isWin()) {
+		verdict = path.back()->isWin();
+		path.back()->ptr = width;
 	} else if (path.back()->total == 0) {
 		verdict = rollout(path.back());
 	} else {
