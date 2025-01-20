@@ -8746,7 +8746,6 @@ spyre
 squab
 squaw
 squeg
-squid
 squit
 squiz
 stabs

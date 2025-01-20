@@ -2,7 +2,7 @@
 #define ll long long
 using namespace std;
 
-const int wordCount = 2317, allowedWords = 10655;
+const int wordCount = 2318, allowedWords = 10654;
 
 vector<string> words(wordCount);
 map<string, int> identifiers;
